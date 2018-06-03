@@ -23,7 +23,7 @@ def blood_o2_saturation(partial_pressure):
 
 def get_blood_o2_concentration(partial_pressure, Hb):
     # The theoretical maximum oxygen carrying capacity is 1.39 ml O2/g Hb, but direct measurement gives a
-    # capacity of 1.34 ml O2/g Hb. 1.34 is also known as Hüfner’s constant.
+    # capacity of 1.34 ml O2/g Hb. 1.34 is also known as Hufner's constant.
     # The oxygen content of blood is the volume of oxygen carried in each 100ml blood.
     # It is calculated by: (O2 carried by Hb) + (O2 in solution) = (1.34 x Hb x SpO2 x 0.01) + (0.023 x PaO2)
     # Where:
