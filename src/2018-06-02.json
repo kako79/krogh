@@ -1,0 +1,16 @@
+{
+  "CMRO2": [2.5],
+  "z_capillary": [200],
+  "velocity": [1.0],
+  "D": [1e-4],
+  "r_Krogh": [20],
+  "r_capillary": [3],
+  "paO2": [200],
+  "Hb": [10],
+  "r_steps": [100],
+  "z_steps": [1000],
+  "sigma": [3.1e-5],
+  "paO2_multiple": [1.0],
+  "velocity_multiple": [1.0],
+  "no_search": [true]
+}
