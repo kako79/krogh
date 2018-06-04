@@ -74,7 +74,8 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
             "jugular_venous_o2_sat": 1,
             "o2_extraction_fraction": 1,
             "pavO2": 1,
-            "hypoxic_fraction": 1
+            "hypoxic_fraction": 1,
+            "p": np.zeros(shape=(z_steps, r_steps))
         }
 
     # We need to convert between ml and cm^3 in a few places below and pint doesn't support that.
@@ -225,5 +226,6 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         "jugular_venous_o2_sat": jugular_venous_o2_sat,
         "o2_extraction_fraction": o2_extraction_fraction,
         "pavO2": pavO2,
-        "hypoxic_fraction": hypoxic_fraction
+        "hypoxic_fraction": hypoxic_fraction,
+        "p": p
     }
