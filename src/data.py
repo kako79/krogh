@@ -13,6 +13,13 @@ def load_results(file_name):
         return pickle.load(f)
 
 
+def save_pressure_matrix(file_name, pressure_matrix):
+    with open(file_name, 'w') as f:
+        w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        for i, p in enumerate(pressure_matrix):
+            w.writerow([i] + list(p))
+
+
 def export_csv(file_name, results):
     fields = {
         "CMRO2": "params.CMRO2",

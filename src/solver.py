@@ -21,7 +21,7 @@ def blood_o2_saturation(partial_pressure):
     return sats_percent
 
 
-def get_blood_o2_concentration(partial_pressure, Hb):
+def get_blood_o2_concentration(partial_pressure, sigma, Hb):
     # The theoretical maximum oxygen carrying capacity is 1.39 ml O2/g Hb, but direct measurement gives a
     # capacity of 1.34 ml O2/g Hb. 1.34 is also known as Hufner's constant.
     # The oxygen content of blood is the volume of oxygen carried in each 100ml blood.
@@ -35,20 +35,19 @@ def get_blood_o2_concentration(partial_pressure, Hb):
 
     # Multiply by 0.01 to convert sats from percentage to fraction.
     sats_fraction = 0.01 * blood_o2_saturation(partial_pressure)
-    pressure_factor = 0.003 * units.mlO2 / units.dL / units.mmHg
     o2_capacity = 1.34 * units.mlO2 / units.g
 
     # Final units are mlO2 / dL
-    Hb_concentration = o2_capacity * Hb * sats_fraction + pressure_factor * partial_pressure
+    Hb_concentration = o2_capacity * Hb * sats_fraction + sigma * partial_pressure
     return Hb_concentration
 
 
 class O2ConcentrationTable:
     _pressure_step = 0.01
 
-    def __init__(self, Hb):
+    def __init__(self, sigma, Hb):
         pressure_values = np.arange(0, 2000, self._pressure_step) * units.mmHg
-        self.table = get_blood_o2_concentration(pressure_values, Hb).magnitude
+        self.table = get_blood_o2_concentration(pressure_values, sigma, Hb).magnitude
 
     def get_blood_o2_pressure(self, concentration):
         assert concentration.units == units.mlO2 / units.dL, ("concentration units are wrong: %s" % concentration.units)
@@ -59,12 +58,26 @@ class O2ConcentrationTable:
         return pp
 
 
+def sigmoid(x):
+    if x > 10:
+        return 1.0
+    elif x < -10:
+        return 0.0
+    else:
+        return 1.0 / (1.0 + np.exp(-x))
+
+
+def gamma(CMRO2max, partial_pressure):
+    return CMRO2max * sigmoid(partial_pressure * 10 - 10)
+
+
 def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, sigma, r_steps, z_steps,
               verbose=False, report_interval=10, test=False, job_number=0, **kwargs):
 
     def log(s):
         print("[{}] {}".format(job_number, s))
 
+    np.seterr(all='raise')
 
     if test:
         return {
@@ -74,21 +87,16 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
             "jugular_venous_o2_sat": 1,
             "o2_extraction_fraction": 1,
             "pavO2": 1,
-            "hypoxic_fraction": 1
+            "hypoxic_fraction": 1,
+            "p": np.zeros(shape=(z_steps, r_steps))
         }
 
     # We need to convert between ml and cm^3 in a few places below and pint doesn't support that.
     ml_to_cm3 = units.ml / (units.cm ** 3)
 
-    def gamma(CMRO2max, partial_pressure):
-        if partial_pressure > 0.4:
-            return CMRO2max.magnitude
-        else:
-            return 0.0  # * units.mlO2 / units.hundred_g / units.min
-
     sigma_ode = sigma.to(units.mlO2 / units.ml / units.mmHg) * ml_to_cm3
     gamma_factor = (CMRO2 / CMRO2.magnitude).to(units.mlO2 / units.g / units.sec).magnitude
-    kappa_factor = 1e-8
+    kappa_factor = (1.0 * units.mmHg / units.cm ** 2).to(units.mmHg / units.um ** 2).magnitude
 
     def odewboundary(D, CMRO2max, x, y):
         g = gamma(CMRO2max, y[0]) * gamma_factor
@@ -123,12 +131,9 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         dy = np.array([odewboundary(D, CMRO2max, x[i], y[:, i]) for i in range(m)]).T
         return dy
 
-    table = O2ConcentrationTable(Hb)
+    table = O2ConcentrationTable(sigma, Hb)
 
     for z in range(z_steps):
-        if z % report_interval == 0:
-            log("step %s, pa: %s" % (z, p[z, 0]))
-
         z_paO2 = p[z, 0]
 
         def bc(ya, yb):
@@ -144,7 +149,7 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         # The derivative of an exponential decay is equal to the function value.
         y1 = y0
         y = np.array([y0, y1])
-        solution = solve_bvp(ode, bc, x, y, tol=1e-7, max_nodes=2000)
+        solution = solve_bvp(ode, bc, x, y, tol=1e-2, max_nodes=2000)
 
         r_values = np.linspace(r_capillary, r_Krogh, r_steps)
         p_sol, _ = solution.sol(r_values)
@@ -181,7 +186,7 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         if verbose:
             log("o2_extracted: %s" % o2_extracted)
 
-        blood_o2_concentration = get_blood_o2_concentration(p[z, 0], Hb).to(units.mlO2 / units.ml)
+        blood_o2_concentration = get_blood_o2_concentration(p[z, 0], sigma, Hb).to(units.mlO2 / units.ml)
         blood_o2_content = blood_o2_concentration * np.pi * dz.to(units.cm) * r_capillary.to(units.cm) ** 2 * ml_to_cm3
 
         if verbose:
@@ -190,6 +195,9 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         o2_concentration_remaining = ((blood_o2_content - o2_extracted)
                                       / (np.pi * dz.to(units.cm) * r_capillary.to(units.cm) ** 2)
                                       / ml_to_cm3).to(units.mlO2 / units.dL)
+
+        if z % report_interval == 0:
+            log("step %s, pa: %s, pb: %s" % (z, p[z, 0], p[z, -1]))
 
         if z < (z_steps - 1):
             p_next = table.get_blood_o2_pressure(o2_concentration_remaining)
@@ -207,10 +215,10 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
     pavO2 = p[0, 0] - p[-1, 0]
 
     # A-V oxygen concentration difference.
-    av_o2_difference = get_blood_o2_concentration(p[0, 0], Hb) - get_blood_o2_concentration(p[-1, 0], Hb)
+    av_o2_difference = get_blood_o2_concentration(p[0, 0], sigma, Hb) - get_blood_o2_concentration(p[-1, 0], sigma, Hb)
 
     # Fraction of oxygen concentration extracted.
-    o2_extraction_fraction = av_o2_difference / get_blood_o2_concentration(p[0, 0], Hb)
+    o2_extraction_fraction = av_o2_difference / get_blood_o2_concentration(p[0, 0], sigma, Hb)
 
     # Calculates jugular venous o2 saturation percentage.
     jugular_venous_o2_sat = blood_o2_saturation(p[-1, 0])
@@ -225,5 +233,6 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
         "jugular_venous_o2_sat": jugular_venous_o2_sat,
         "o2_extraction_fraction": o2_extraction_fraction,
         "pavO2": pavO2,
-        "hypoxic_fraction": hypoxic_fraction
+        "hypoxic_fraction": hypoxic_fraction,
+        "p": p
     }
