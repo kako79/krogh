@@ -80,6 +80,6 @@ if __name__ == '__main__':
     export_csv(csv_results_file_name, results)
     save_results(raw_results_file_name, results)
 
-    for i, result in enumerate(results):
-        file_name = base_file_name + "pressure{}.csv".format(i)
-        save_pressure_matrix(file_name, result["base_results"]["p"])
+    #for i, result in enumerate(results):
+    #    file_name = base_file_name + "pressure{}.csv".format(i)
+    #    save_pressure_matrix(file_name, result["base_results"]["p"])
