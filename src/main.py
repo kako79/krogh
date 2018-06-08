@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     if not param_values:
         param_values = Parameters({
-            # 2.5 - 4.5  
+            # 2.5 - 4.5
             "CMRO2": [3.0] * units.mlO2 / units.hundred_g / units.min,
 
             # Length of the capillary.
@@ -81,5 +81,5 @@ if __name__ == '__main__':
     save_results(raw_results_file_name, results)
 
     for i, result in enumerate(results):
-        file_name = base_file_name + " pressure {}.csv".format(i)
+        file_name = base_file_name + "pressure{}.csv".format(i)
         save_pressure_matrix(file_name, result["base_results"]["p"])
