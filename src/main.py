@@ -10,11 +10,11 @@ if __name__ == '__main__':
     units = get_units()
 
     param_values = None
-    base_file_name = "results " + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    base_file_name = "results" + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
     if len(sys.argv) > 1:
         param_values = Parameters(load_param_values(sys.argv[1]))
-        base_file_name = "results " + sys.argv[1]
+        base_file_name = "results" + sys.argv[1]
 
     if not param_values:
         param_values = Parameters({
