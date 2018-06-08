@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     if not param_values:
         param_values = Parameters({
-            # 2.5 - 4.5
+            # 2.5 - 4.5  
             "CMRO2": [3.0] * units.mlO2 / units.hundred_g / units.min,
 
             # Length of the capillary.
