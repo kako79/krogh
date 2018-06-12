@@ -29,10 +29,17 @@ class Parameters:
     def __init__(self, param_dict=None):
         self.param_dict = param_dict
 
-    def __getstate__(self):
+    def to_unitless(self):
         return {
             name: _strip_units(value) for name, value in self.param_dict.items()
         }
+
+    @staticmethod
+    def from_unitless(value_dict):
+        return Parameters(_add_units(value_dict))
+
+    def __getstate__(self):
+        return self.to_unitless()
 
     def __setstate__(self, state):
         self.param_dict = _add_units(state)
@@ -54,6 +61,12 @@ class Parameters:
 
     def __setitem__(self, key, value):
         return self.param_dict.__setitem__(key, value)
+
+    def __str__(self):
+        return str(self.param_dict)
+
+    def __repr__(self):
+        return repr(self.param_dict)
 
 
 def create_param_grid(param_dict):

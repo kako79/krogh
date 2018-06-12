@@ -43,7 +43,7 @@ def get_blood_o2_concentration(partial_pressure, sigma, Hb):
 
 
 class O2ConcentrationTable:
-    _pressure_step = 0.01
+    _pressure_step = 0.001
 
     def __init__(self, sigma, Hb):
         pressure_values = np.arange(0, 2000, self._pressure_step) * units.mmHg
@@ -76,8 +76,6 @@ def integrate(CMRO2, z_capillary, velocity, D, r_Krogh, r_capillary, paO2, Hb, s
 
     def log(s):
         print("[{}] {}".format(job_number, s))
-
-    np.seterr(all='raise')
 
     if test:
         return {

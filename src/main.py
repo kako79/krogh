@@ -56,11 +56,12 @@ if __name__ == '__main__':
             # sigma source: http://www.frca.co.uk/article.aspx?articleid=100344
             "sigma": [0.0031] * units.mlO2 / units.dL / units.mmHg,
 
-            "test": [True],
+            "test": [False],
+            "no_search": [False],
 
-            "paO2_multiple": [1.1],
-
-            "velocity_multiple": [1.1],
+            "paO2_multiple": [1.0],
+            "velocity_multiple": [1.0],
+            "report_interval": [100]
         })
 
     print("Parameter values:")
